@@ -1,0 +1,213 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.dash { padding: 1rem 0; }
+.top-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem; }
+.top-bar h2 { font-size: 16px; font-weight: 500; color: var(--color-text-primary); flex: 1; min-width: 160px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.controls select, .controls input { font-size: 13px; padding: 6px 10px; border-radius: var(--border-radius-md); }
+.controls input { width: 130px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+.metric .label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric .value { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.metric .value.up { color: #c0392b; }
+.metric .value.down { color: #27ae60; }
+.table-wrap { overflow-x: auto; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+th { background: var(--color-background-secondary); color: var(--color-text-secondary); font-weight: 500; padding: 9px 10px; text-align: left; border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { color: var(--color-text-primary); }
+td { padding: 9px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--color-background-secondary); }
+.badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+.badge-buy { background: #fde8e8; color: #a32d2d; }
+.badge-sell { background: #e8f4ec; color: #1a6b3a; }
+.badge-hold { background: #f3f3ef; color: #5f5e5a; }
+.badge-watch { background: #fef3e0; color: #854f0b; }
+.sort-icon { font-size: 10px; margin-left: 3px; opacity: 0.5; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.filter-row label { font-size: 12px; color: var(--color-text-secondary); }
+.api-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 1rem; padding: 10px 14px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); }
+.api-bar input { flex: 1; font-size: 13px; padding: 5px 8px; border-radius: var(--border-radius-md); }
+.api-bar button { font-size: 13px; padding: 5px 14px; cursor: pointer; }
+.api-status { font-size: 12px; color: var(--color-text-secondary); }
+.tag-demo { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #fef3e0; color: #854f0b; font-weight: 500; }
+</style>
+
+<div class="dash">
+  <div class="top-bar">
+    <h2>台股分析儀表板</h2>
+    <span class="tag-demo">示範資料</span>
+    <div class="controls">
+      <input type="text" id="search" placeholder="搜尋股票代號/名稱" oninput="renderTable()" />
+      <select id="filter-signal" onchange="renderTable()">
+        <option value="">全部訊號</option>
+        <option value="買入">買入</option>
+        <option value="觀察">觀察</option>
+        <option value="持有">持有</option>
+        <option value="賣出">賣出</option>
+      </select>
+      <select id="filter-bias" onchange="renderTable()">
+        <option value="">乖離率篩選</option>
+        <option value="over">乖離率 &gt; 5%</option>
+        <option value="under">乖離率 &lt; -5%</option>
+        <option value="normal">-5% ~ 5%</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="api-bar">
+    <span style="font-size:13px;color:var(--color-text-secondary);white-space:nowrap;">API 端點</span>
+    <input type="text" id="api-url" placeholder="https://your-n8n-endpoint.com/webhook/stocks" />
+    <button onclick="fetchAPI()">載入資料 ↗</button>
+    <span class="api-status" id="api-status">尚未連線（目前顯示示範資料）</span>
+  </div>
+
+  <div class="summary-grid" id="summary"></div>
+
+  <div class="table-wrap">
+    <table id="stock-table">
+      <thead>
+        <tr>
+          <th style="width:80px" onclick="sortBy('code')">代號 <span class="sort-icon" id="sort-code">↕</span></th>
+          <th style="width:80px" onclick="sortBy('name')">名稱</th>
+          <th style="width:80px" onclick="sortBy('close')">收盤價 <span class="sort-icon" id="sort-close">↕</span></th>
+          <th style="width:80px" onclick="sortBy('ma20')">月均價 <span class="sort-icon" id="sort-ma20">↕</span></th>
+          <th style="width:80px" onclick="sortBy('bias')">乖離率 <span class="sort-icon" id="sort-bias">↕</span></th>
+          <th style="width:90px" onclick="sortBy('foreign')">外資買賣超 <span class="sort-icon" id="sort-foreign">↕</span></th>
+          <th style="width:90px" onclick="sortBy('invest')">投信買賣超 <span class="sort-icon" id="sort-invest">↕</span></th>
+          <th style="width:90px" onclick="sortBy('dealer')">自營商買賣超 <span class="sort-icon" id="sort-dealer">↕</span></th>
+          <th style="width:80px" onclick="sortBy('total3')">三大法人合計 <span class="sort-icon" id="sort-total3">↕</span></th>
+          <th style="width:72px" onclick="sortBy('entry')">進場價 <span class="sort-icon" id="sort-entry">↕</span></th>
+          <th style="width:72px" onclick="sortBy('exit')">退場價 <span class="sort-icon" id="sort-exit">↕</span></th>
+          <th style="width:68px" onclick="sortBy('signal')">訊號 <span class="sort-icon" id="sort-signal">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-secondary);margin-top:8px;" id="row-count"></div>
+</div>
+
+<script>
+const DEMO = [
+  {code:'2330',name:'台積電',close:920,ma20:890,foreign:15000,invest:3200,dealer:-800,signal:'買入',entry:870,exit:980},
+  {code:'2317',name:'鴻海',close:178,ma20:182,foreign:-4500,invest:-800,dealer:200,signal:'觀察',entry:165,exit:195},
+  {code:'2454',name:'聯發科',close:1180,ma20:1110,foreign:8200,invest:1500,dealer:300,signal:'買入',entry:1080,exit:1260},
+  {code:'2881',name:'富邦金',close:88.5,ma20:86,foreign:2100,invest:-200,dealer:100,signal:'持有',entry:83,exit:95},
+  {code:'2882',name:'國泰金',close:62.3,ma20:65,foreign:-3100,invest:-500,dealer:-120,signal:'賣出',entry:58,exit:70},
+  {code:'2303',name:'聯電',close:52.8,ma20:50.2,foreign:5600,invest:900,dealer:-200,signal:'買入',entry:48,exit:57},
+  {code:'3711',name:'日月光投控',close:148,ma20:155,foreign:-2000,invest:-400,dealer:50,signal:'觀察',entry:140,exit:162},
+  {code:'2412',name:'中華電',close:128,ma20:126,foreign:800,invest:100,dealer:30,signal:'持有',entry:122,exit:135},
+  {code:'2308',name:'台達電',close:335,ma20:318,foreign:4200,invest:700,dealer:150,signal:'買入',entry:305,exit:360},
+  {code:'6505',name:'台塑化',close:78.5,ma20:82,foreign:-1800,invest:-300,dealer:-80,signal:'賣出',entry:72,exit:88},
+  {code:'2886',name:'兆豐金',close:41.8,ma20:40.5,foreign:1200,invest:200,dealer:60,signal:'持有',entry:38.5,exit:45},
+  {code:'2891',name:'中信金',close:35.2,ma20:34,foreign:900,invest:150,dealer:40,signal:'持有',entry:32,exit:38},
+];
+
+function calcBias(close, ma20) { return ((close - ma20) / ma20 * 100); }
+function calcTotal3(r) { return r.foreign + r.invest + r.dealer; }
+function getSignalBadge(s) {
+  if(s==='買入') return '<span class="badge badge-buy">買入</span>';
+  if(s==='賣出') return '<span class="badge badge-sell">賣出</span>';
+  if(s==='觀察') return '<span class="badge badge-watch">觀察</span>';
+  return '<span class="badge badge-hold">持有</span>';
+}
+function fmt(n,d=0) { return n.toFixed(d); }
+function fmtK(n) { return (n>=0?'+':'')+Math.round(n/100)/10+'萬'; }
+
+let data = DEMO.map(r=>({...r, bias:calcBias(r.close,r.ma20), total3:calcTotal3(r)}));
+let sortKey = 'total3', sortDir = -1;
+
+function sortBy(key) {
+  if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=-1; }
+  document.querySelectorAll('.sort-icon').forEach(el=>el.textContent='↕');
+  const el = document.getElementById('sort-'+key);
+  if(el) el.textContent = sortDir===1?'↑':'↓';
+  renderTable();
+}
+
+function renderTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const sig = document.getElementById('filter-signal').value;
+  const bias = document.getElementById('filter-bias').value;
+
+  let rows = data.filter(r => {
+    if(q && !r.code.includes(q) && !r.name.includes(q)) return false;
+    if(sig && r.signal!==sig) return false;
+    if(bias==='over' && r.bias<=5) return false;
+    if(bias==='under' && r.bias>=-5) return false;
+    if(bias==='normal' && (r.bias>5||r.bias<-5)) return false;
+    return true;
+  });
+
+  rows.sort((a,b)=>{
+    let av=a[sortKey], bv=b[sortKey];
+    if(typeof av==='string') return sortDir*(av>bv?1:-1);
+    return sortDir*(av-bv);
+  });
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.map(r=>{
+    const biasColor = r.bias>5?'color:#c0392b':r.bias<-5?'color:#27ae60':'color:var(--color-text-primary)';
+    const closeColor = r.close>=r.ma20?'color:#c0392b':'color:#27ae60';
+    const t3color = r.total3>0?'color:#c0392b':r.total3<0?'color:#27ae60':'';
+    return `<tr>
+      <td style="font-weight:500">${r.code}</td>
+      <td>${r.name}</td>
+      <td style="${closeColor}">${fmt(r.close,1)}</td>
+      <td>${fmt(r.ma20,1)}</td>
+      <td style="${biasColor};font-weight:500">${r.bias>0?'+':''}${fmt(r.bias,2)}%</td>
+      <td style="${r.foreign>0?'color:#c0392b':'color:#27ae60'}">${fmtK(r.foreign)}</td>
+      <td style="${r.invest>0?'color:#c0392b':'color:#27ae60'}">${fmtK(r.invest)}</td>
+      <td style="${r.dealer>0?'color:#c0392b':'color:#27ae60'}">${fmtK(r.dealer)}</td>
+      <td style="${t3color};font-weight:500">${fmtK(r.total3)}</td>
+      <td style="color:var(--color-text-secondary)">${fmt(r.entry,1)}</td>
+      <td style="color:var(--color-text-secondary)">${fmt(r.exit,1)}</td>
+      <td>${getSignalBadge(r.signal)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('row-count').textContent = `顯示 ${rows.length} / ${data.length} 檔`;
+  renderSummary(rows);
+}
+
+function renderSummary(rows) {
+  const buyCnt = rows.filter(r=>r.signal==='買入').length;
+  const sellCnt = rows.filter(r=>r.signal==='賣出').length;
+  const watchCnt = rows.filter(r=>r.signal==='觀察').length;
+  const netForeign = rows.reduce((s,r)=>s+r.foreign,0);
+  document.getElementById('summary').innerHTML = `
+    <div class="metric"><div class="label">買入訊號</div><div class="value up">${buyCnt} 檔</div></div>
+    <div class="metric"><div class="label">賣出訊號</div><div class="value down">${sellCnt} 檔</div></div>
+    <div class="metric"><div class="label">觀察名單</div><div class="value">${watchCnt} 檔</div></div>
+    <div class="metric"><div class="label">外資合計買賣超</div><div class="value ${netForeign>0?'up':'down'}">${fmtK(netForeign)}</div></div>
+    <div class="metric"><div class="label">乖離率 &gt;5%</div><div class="value">${rows.filter(r=>r.bias>5).length} 檔</div></div>
+    <div class="metric"><div class="label">乖離率 &lt;-5%</div><div class="value">${rows.filter(r=>r.bias<-5).length} 檔</div></div>
+  `;
+}
+
+async function fetchAPI() {
+  const url = document.getElementById('api-url').value.trim();
+  const status = document.getElementById('api-status');
+  if(!url) { status.textContent='請輸入 API 端點'; return; }
+  status.textContent='連線中...';
+  try {
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    const arr = Array.isArray(json)?json:(json.data||json.stocks||[]);
+    if(!arr.length) throw new Error('回傳資料為空');
+    data = arr.map(r=>({...r, bias:calcBias(r.close,r.ma20), total3:calcTotal3(r)}));
+    status.textContent = `已載入 ${data.length} 筆資料`;
+    document.querySelector('.tag-demo').style.display='none';
+    renderTable();
+  } catch(e) {
+    status.textContent = '連線失敗：'+e.message;
+  }
+}
+
+sortBy('total3');
+</script>
