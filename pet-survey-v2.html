@@ -165,27 +165,29 @@ body{font-family:'Noto Sans TC',sans-serif;
 /* ═══════════════════════════════════════════════════════
    ★  CONFIG  請在這裡填入你的設定
    ═══════════════════════════════════════════════════════ */
-const CFG = {
-  adminEmail: 'YOUR_EMAIL@example.com',  // ← 你的管理員信箱（必填）
-  adminEmailEnabled: true,               // ← 寄信給管理員：true 開 / false 關
-  sheetUrl1:  '',  // ← 試算表1 的 Apps Script URL（進入第一頁寫入）
-  sheetUrl2:  '',  // ← 試算表2 的 Apps Script URL（完成問卷到解鎖頁寫入）
+    const CFG = {
+        adminEmail: 'cuZoQhPrlr55s6@gmail.com',  // ← 你的管理員信箱（必填）
+        adminEmailEnabled: false,               // ← 管理員信件開關：true 寄 / false 不寄
+        sheetUrl1: 'https://script.google.com/macros/s/AKfycbzM2Ocu9HyGcz6yf7chD1RslXmqjt1tyKvLZvVbTku-uCE6yI2baYD8hzyXQaC1xWnd/exec',  // ← 試算表1 的 Apps Script URL（進入第一頁寫入）
+        sheetUrl2: 'https://script.google.com/macros/s/AKfycbz6FK1HonIndarQipD3nbJLLFKBOz3LSuFDSJ0cy4wiy0PaE3A3TBzUQw7n-dntjcH0tg/exec',  // ← 試算表2 的 Apps Script URL（完成問卷到解鎖頁寫入）
 
-  /* EmailJS 設定（免費：https://www.emailjs.com/）
-     1. 建立帳號 → Email Services → 新增信箱服務
-     2. Email Templates → 新增 HTML 範本
-        To：         {{to_email}}
-        Subject：    {{subject}}
-        Content：    {{{html_body}}}   ← 三個大括號，讓 EmailJS 直接渲染 HTML
-     3. 複製以下三個 ID 填入 */
-  ejsKey : '',   // Public Key
-  ejsSvc : '',   // Service ID
-  ejsTpl : '',   // Template ID
-  // ── 社群登入 ──
-  googleClientId : '',  // Google Cloud Console → OAuth 2.0 用戶端 ID
-  facebookAppId  : '',  // Meta developers → 應用程式 ID
-  lineChannelId  : '',  // LINE Developers → Login Channel ID
-};
+        /* EmailJS 設定（免費：https://www.emailjs.com/）
+           1. 建立帳號 → Email Services → 新增信箱服務
+           2. Email Templates → 新增 HTML 範本
+              To：         {{to_email}}
+              Subject：    {{subject}}
+              Content：    {{{html_body}}}   ← 三個大括號，讓 EmailJS 直接渲染 HTML
+           3. 複製以下三個 ID 填入 */
+        ejsKey: 'DRfmKY92mK6oG_0yM',   // Public Key
+        ejsSvc: 'service_uvts3mi',   // Service ID
+        ejsTpl: 'template_6nw6c4h',   // Template ID
+        // ── 社群登入 ──
+        googleClientId: '1077767017571-2vi95e7cq18q5b62n5b52bp7s5u3ajdf.apps.googleusercontent.com',  // Google Cloud Console → OAuth 2.0 用戶端 ID
+        facebookAppId: '1542476126772950',  // Meta developers → 應用程式 ID
+        lineChannelId: '',  // LINE Developers → Login Channel ID
+    };
+
+
 /* ═══════════════════════════════════════════════════════ */
 
 /* ── DATA ── */
